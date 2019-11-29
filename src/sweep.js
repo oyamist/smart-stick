@@ -3,33 +3,112 @@
 
     class Sweep {
         constructor(opts={}) {
+            // sweep model is sinusoidal
+            logger.logInstance(this, opts);
             this.period = opts.period || 1.4;
-            this.frequency = 2 * Math.PI/this.period;
             this.rStick = opts.rStick || 1; // meter
-            if (opts.sweepRadians) {
-                this.sweepRadians = opts.sweepRadians;
-            } else {
-                var sweepDegrees = opts.sweepDegrees || 45;
-                this.sweepRadians = Math.PI * sweepDegrees / 180;
-            }
+            this.downDegrees = opts.downDegrees || 0;
+            this.sweepDegrees = opts.sweepDegrees || 45;
         }
 
-        position(t) {
+        get sweepDegrees() {
+            return 180 * this.sweepRadians / Math.PI;
+        }
+
+        set sweepDegrees(value) {
+            this.sweepRadians = Math.PI * value / 180;
+        }
+
+        get period() {
+            return 2 * Math.PI / this.frequency;
+        }
+
+        set period(value) {
+            this.frequency = 2 * Math.PI / value;
+        }
+
+        get downDegrees() {
+            return 180 * this.downRadians / Math.PI;
+        }
+
+        set downDegrees(value) {
+            this.downRadians =  Math.PI * value / 180;
+        }
+
+        position(t) { // walker relative
             var {
                 sweepRadians,
                 frequency,
                 rStick,
             } = this;
             var w = 0.5 * sweepRadians * Math.sin(frequency * t);
-            var y = rStick * Math.cos(w);
-            var x = rStick * Math.sin(w);
-
             return {
-                xyDegrees: 180 * w / Math.PI,
-                x,
-                y,
                 t,
+                x: -rStick * Math.sin(w), // walker relative
+                y: rStick * Math.cos(w), // walker relative
+                w,
+                xyDegrees: 180 * w / Math.PI,
             }
+        }
+
+        acceleration(t) { // tip relative
+            var {
+                sweepRadians,
+                frequency,
+                rStick,
+            } = this;
+
+            // approximate acceleration 
+            var dt = -0.0001;
+            var dt2 = dt * dt;
+            var p0 = this.position(t-dt);
+            var p1 = this.position(t);
+            var p2 = this.position(t+dt);
+            var dx10 = p1.x - p0.x;
+            var dy10 = p1.y - p0.y;
+            var dx21 = p2.x - p1.x;
+            var dy21 = p2.y - p1.y;
+            var w = p1.w;
+            var ddx = (dx21 - dx10)/dt2;
+            var ddy = (dy21 - dy10)/dt2;
+            var aTip = this.transformTip([ddx, ddy, 0], w);
+
+            return Object.assign(p1, { ddx, ddy, aTip});
+        }
+
+        transformTip(xyz, w) {
+            var [x,y,z] = xyz;
+            var {
+                downRadians,
+            } = this;
+
+            var l = -1;
+            var m = 0;
+            var n = 0;
+            var cd = Math.cos(-downRadians);
+            var cd1 = 1 - cd;
+            var sd = Math.sin(-downRadians);
+            var [x1,y1,z1] = [
+                (l*l*cd1+cd)*x + (m*l*cd1-n*sd)*y + (n*l*cd1+m*sd)*z, 
+                (l*m*cd1+n*sd)*x + (m*m*cd1+cd)*y + (n*m*cd1-l*sd)*z,
+                (l*n*cd1-m*sd)*x + (m*n*cd1+l*sd)*y + (n*n*cd1+cd)*z,
+            ];
+            var l = 0;
+            if (1) {
+            var m = -Math.sin(downRadians);
+            var n = Math.cos(downRadians);
+            } else{
+            var m = 0;
+            var n = 1;
+            }
+            var cd = Math.cos(-w);
+            var cd1 = 1 - cd;
+            var sd = Math.sin(-w);
+            return [
+                (l*l*cd1+cd)*x1 + (m*l*cd1-n*sd)*y1 + (n*l*cd1+m*sd)*z1, 
+                (l*m*cd1+n*sd)*x1 + (m*m*cd1+cd)*y1 + (n*m*cd1-l*sd)*z1,
+                (l*n*cd1-m*sd)*x1 + (m*n*cd1+l*sd)*y1 + (n*n*cd1+cd)*z1,
+            ];
         }
 
     }

@@ -7,7 +7,7 @@
     "test": "test"
   },
   "dependencies": {
-    "just-simple": "^0.1.4",
+    "just-simple": "^0.1.7",
     "oya-ann": "^0.1.3",
     "winston": "^3.0.0"
   },
