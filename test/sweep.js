@@ -3,6 +3,7 @@
     const { js, logger } = require('just-simple').JustSimple;
     const {
         Sweep,
+        Tracker,
     } = require('../index');
     var logLevel = false;
     var eps = 0.00001;
@@ -89,7 +90,6 @@
         var period = 1;
         var rStick = 1;
         var sweepDegrees = 45;
-        var halfSweep = Math.PI * sweepDegrees/360;
         var sweep = new Sweep({ period, rStick, sweepDegrees});
 
         var t = 0; // forward
@@ -182,5 +182,56 @@
         should(tipxyz[1]).approximately(-0.5, eps);
         should(tipxyz[2]).approximately(0.866025, eps);
     });
+    it("TESTTESTmax acceleration varies", ()=>{
+        var sweep = new Sweep({ logLevel });
 
-});
+        // period
+        sweep.period = 1;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(15.50313, eps);
+        sweep.period = 1.1;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(12.81251, eps);
+        sweep.period = 1.2;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(10.766068, eps);
+        sweep.period = 1.3;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(9.17345, eps);
+        sweep.period = 1.4;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(7.909764, eps);
+
+        // rStick
+        sweep.rStick = 1.1;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(8.70074, eps);
+
+        // sweepDegrees
+        sweep.sweepDegrees = 30;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(5.80049, eps);
+    });
+    it("TESTTESTtrack frequency", ()=>{
+        var tracker = new Tracker();
+        var fActual = (1/1.4).toFixed(4); // 0.7142857
+        var size = 4*64; // power of two
+        var sample = (sampleRate) => {
+            var signal = new Float32Array(size);
+            for (var i = 0; i < size; i++) {
+                var w = fActual*Math.PI*2;
+                signal[i] = Math.sin(w * (i/sampleRate));
+            }
+            return signal;
+        };
+       
+        for (var rate=2; rate<6; rate += 0.2) {
+            var signal = sample(rate);
+            var fSample = tracker.frequency(signal, rate).toFixed(4);
+            var sHz = rate.toFixed(2);
+            console.log(`dbg fSample`, {sHz, fSample, fActual});
+        }
+    });
+
+
+    });
