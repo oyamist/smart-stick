@@ -6,25 +6,28 @@
             // sweep model is sinusoidal
             logger.logInstance(this, opts);
             this.period = opts.period || 1.4;
+            Object.defineProperty(this, "frequency", {
+                enumerable: true,
+                get() { return 1/this.period; },
+                set(value=1/this.period) { this.period = 1/value; },
+            });
+            this.frequency = opts.frequency;
             this.rStick = opts.rStick || 1; // meter
             this.downDegrees = opts.downDegrees || 0;
-            this.sweepDegrees = opts.sweepDegrees || 45;
-        }
-
-        get sweepDegrees() {
-            return 180 * this.sweepRadians / Math.PI;
-        }
-
-        set sweepDegrees(value) {
-            this.sweepRadians = Math.PI * value / 180;
-        }
-
-        get period() {
-            return 2 * Math.PI / this.frequency;
-        }
-
-        set period(value) {
-            this.frequency = 2 * Math.PI / value;
+            Object.defineProperty(this, "sweepRadians", {
+                writable: true,
+                value: opts.sweepRadians || (Math.PI * 45/180),
+            });
+            Object.defineProperty(this, "sweepDegrees", {
+                enumerable: true,
+                get() { return this.sweepRadians * 180 / Math.PI; },
+                set(value) { this.sweepRadians = value * Math.PI / 180; },
+            });
+            opts.sweepDegrees && (this.sweepDegrees = opts.sweepDegrees);
+            Object.defineProperty(this, "radiansPerSecond", {
+                enumerable: true,
+                get() { return this.frequency * 2  * Math.PI; },
+            });
         }
 
         get downDegrees() {
@@ -38,10 +41,10 @@
         position(t) { // walker relative
             var {
                 sweepRadians,
-                frequency,
+                radiansPerSecond,
                 rStick,
             } = this;
-            var w = 0.5 * sweepRadians * Math.sin(frequency * t);
+            var w = 0.5 * sweepRadians * Math.sin(radiansPerSecond * t);
             return {
                 t,
                 x: -rStick * Math.sin(w), // walker relative
@@ -54,7 +57,6 @@
         acceleration(t) { // tip relative
             var {
                 sweepRadians,
-                frequency,
                 rStick,
             } = this;
 

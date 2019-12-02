@@ -11,9 +11,9 @@
     it("TESTTESTdefault ctor", ()=>{
         var sweep = new Sweep();
         var period = 1.4;
+        should(sweep.frequency).equal(1/1.4);
+        should(sweep.period).equal(1.4);
         should(sweep).properties({
-            period, // stick sweep period in seconds
-            frequency: 2 * Math.PI / period,
             rStick: 1, // stick length in meters
             sweepRadians: Math.PI * 45 / 180, // forward sweep angle
             sweepDegrees: 45,
@@ -35,10 +35,10 @@
             sweepDegrees,
             downDegrees,
         });
+        should(sweep.frequency).equal(1/period);
+        should(sweep.period).equal(period);
         should(sweep).properties({
             logLevel,
-            period, // stick sweep period in seconds
-            frequency: 2 * Math.PI / period,
             rStick, // stick length in meters
             sweepDegrees,
             sweepRadians: Math.PI * sweepDegrees / 180,
@@ -212,26 +212,5 @@
         var a = sweep.acceleration(sweep.period*0.25);
         should(a.aTip[0]).approximately(5.80049, eps);
     });
-    it("TESTTESTtrack frequency", ()=>{
-        var tracker = new Tracker();
-        var fActual = (1/1.4).toFixed(4); // 0.7142857
-        var size = 4*64; // power of two
-        var sample = (sampleRate) => {
-            var signal = new Float32Array(size);
-            for (var i = 0; i < size; i++) {
-                var w = fActual*Math.PI*2;
-                signal[i] = Math.sin(w * (i/sampleRate));
-            }
-            return signal;
-        };
-       
-        for (var rate=2; rate<6; rate += 0.2) {
-            var signal = sample(rate);
-            var fSample = tracker.frequency(signal, rate).toFixed(4);
-            var sHz = rate.toFixed(2);
-            console.log(`dbg fSample`, {sHz, fSample, fActual});
-        }
-    });
 
-
-    });
+});

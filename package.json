@@ -9,7 +9,7 @@
   "dependencies": {
     "decibels": "^2.0.0",
     "fourier-transform": "^1.1.2",
-    "just-simple": "^0.1.7",
+    "just-simple": "^0.1.8",
     "oya-ann": "^0.1.3",
     "winston": "^3.0.0"
   },
