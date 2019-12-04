@@ -11,28 +11,67 @@
 
         phase(waveform, sampleRate) {
             var zeroes = [];
-            var wiPrev = waveform[0];
-            for (var i=1; i<waveform.length; i++) {
+            var wi2 = waveform[0];
+            var wi1 = waveform[1];
+            var sum = 0;
+            var sum3 = 0;
+            var n = 0;
+            var iPhase = undefined;
+            for (var i=2; i<waveform.length; i++) {
                 var wi = waveform[i];
-                if (wiPrev < 0 && 0 <= wi || 0 <= wiPrev && wi < 0) {
-                    zeroes.push(i);
+                if (wi1<=0 && wi>0 || wi1>0 && wi<=0) {
+                    if (wi1 < 0 && iPhase === undefined) {
+                        iPhase = i;
+                    }
+                    let diz = wi1 / (wi1 - wi);
+                    let diz21 = wi2 / (wi2 - wi1);
+                    let diz2 = wi2 / (wi2 - wi);
+                    console.log(`dbg diz`, 
+                        js.s({wi2, wi1, wi, diz, diz21, diz2}));
+                    //let diz3 = (diz + diz21 + diz2)/3;
+                    let diz3 = (diz + diz2)/2;
+                    sum3 += diz3;
+                    sum += diz;
+                    n++;
+                    zeroes.push({
+                        i,
+                        sum,
+                        sum3,
+                        n,
+                        avg: sum / n,
+                        avg3: sum3 / n,
+                        t: (i-diz)/sampleRate,
+                        t3: (i-diz3)/sampleRate,
+                    });
                 }
-                wiPrev = wi;
+                wi2 = wi1;
+                wi1 = wi;
             }
-            let tzero = [];
-            var diz = zeroes.reduce((a,i) => {
-                if (i===0) { return a; }
-                let [v0,v1] = [waveform[i-1], waveform[i]];
-                let diz = v0/(v0-v1);
-                a.sum += diz;
-                a.n++;
-                a.avg = a.sum / a.n;
-                tzero.push((i-diz)/sampleRate);
+            zeroes.forEach(z => console.log(js.s(z)));
+            var zStats = zeroes.reduce((a,z,i) => {
+                if (i === 0) {
+                    a.tSum = 0;
+                    a.tSum3 = 0;
+                } else {
+                    a.tSum += z.t - a.zPrev.t;
+                    a.tSum3 += z.t3 - a.zPrev.t3;
+                }
+                a.zPrev = z;
                 return a;
-            },{sum:0,n:0});
-            var iMin = zeroes[0];
-            tzero.sort((a,b) => a-b);
-            console.log(js.s({zeroes,diz,tzero}));
+            },{});
+            var period = 2 * zStats.tSum/(zeroes.length-1);
+            var period3 = 2 * zStats.tSum3/(zeroes.length-1);
+            var frequency = 1/period;
+            var phaseDelay = iPhase/sampleRate;
+            var duration = waveform.length / sampleRate;
+            //console.log(`dbg zeroes`, waveform, zeroes);
+            return {
+                period, 
+                period3,
+                frequency,
+                phaseDelay,
+                duration,
+            }
         }
 
         frequency(waveform, sampleRate) {

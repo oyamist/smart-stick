@@ -5,6 +5,7 @@
         constructor(opts={}) {
             // sweep model is sinusoidal
             logger.logInstance(this, opts);
+            this.phaseDelay = opts.phaseDelay || 0;
             this.period = opts.period || 1.4;
             Object.defineProperty(this, "frequency", {
                 enumerable: true,
@@ -43,14 +44,16 @@
                 sweepRadians,
                 radiansPerSecond,
                 rStick,
+                phaseDelay,
             } = this;
-            var w = 0.5 * sweepRadians * Math.sin(radiansPerSecond * t);
+            var omega = radiansPerSecond * (t-phaseDelay);
+            var w = 0.5 * sweepRadians * Math.sin(omega);
             return {
                 t,
                 x: -rStick * Math.sin(w), // walker relative
                 y: rStick * Math.cos(w), // walker relative
                 w,
-                xyDegrees: 180 * w / Math.PI,
+                tipBearing: 180 * w / Math.PI,
             }
         }
 
