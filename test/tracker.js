@@ -44,8 +44,8 @@
     it("TESTTESTanalyze(...) => phaseDelay, period", ()=>{
         var tracker = new Tracker();
         var period = 3; // the longest trackable period
-        var size = 100;
-        var phaseDelay = 1.35;
+        var size = 56;
+        var phaseDelay = .25;
         var sweep = new Sweep({ logLevel, period, phaseDelay, });
         console.log(`dbg analyze`,js.s({sweep}));
         var sample = (sampleRate) => {
