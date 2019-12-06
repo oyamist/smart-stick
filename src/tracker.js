@@ -38,32 +38,20 @@
         analyze(waveform, sampleRate) {
             var zeroes = [];
             var sampleInterval = 1/sampleRate;
-            var wi3 = waveform[0];
-            var wi2 = waveform[1];
-            var wi1 = waveform[2];
             var phaseDelay = undefined;
-            for (var i=3; i<waveform.length; i++) {
-                var wi = waveform[i];
-                if (wi2<=0 && wi1>0 || wi2>0 && wi1<=0) {
-                    var pts = [{
-                        x: (i-3)*sampleInterval,
-                        y: wi3,
-                    },{
-                        x: (i-2)*sampleInterval,
-                        y: wi2,
-                    },{
-                        x: (i-1)*sampleInterval,
-                        y: wi1,
-                    }];
+            for (var i=2; i<waveform.length; i++) {
+                var [wi1, wi] = waveform.slice(i-1,i+1);
+                if (wi1<=0 && wi>0 || wi1>0 && wi<=0) {
+                    var pts = [i-2,i-1,i].map(i => ({
+                        x: i*sampleInterval,
+                        y: waveform[i],
+                    }));
                     var t = this.xIntercept3(pts);
-                    if (wi2 <= 0 && phaseDelay === undefined) {
+                    if (wi1 <= 0 && phaseDelay === undefined) {
                         phaseDelay = t;
                     }
                     zeroes.push({ i, t, });
                 }
-                wi3 = wi2;
-                wi2 = wi1;
-                wi1 = wi;
             }
             zeroes.forEach(z => console.log(js.s(z)));
             var zStats = zeroes.reduce((a,z,i) => {
