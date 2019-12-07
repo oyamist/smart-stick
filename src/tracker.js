@@ -36,6 +36,10 @@
         }
 
         analyze(waveform, sampleRate) {
+            // zero-crossing analysis requires slightly more 
+            // than a full period of sample data. A slightly quicker
+            // response could be squeezed out by analyzing maxima
+            // and minima but that's a lot of work.
             var zeroes = [];
             var sampleInterval = 1/sampleRate;
             var phaseDelay = undefined;
@@ -54,14 +58,11 @@
                 }
             }
             zeroes.forEach(z => console.log(js.s(z)));
-            var zStats = zeroes.reduce((a,z,i) => {
-                a.tSum = i === 0 
-                    ? a.tSum = 0
-                    : a.tSum += z.t - a.zPrev.t;
-                a.zPrev = z;
-                return a;
-            },{});
-            var period = 2 * zStats.tSum/(zeroes.length-1);
+            console.log(zeroes.length);
+            var period = 2*(zeroes[1].t - zeroes[0].t);
+            if (phaseDelay > period) { 
+                phaseDelay -= period; 
+            }
             var sampleTime = waveform.length / sampleRate;
             return {
                 period, 
