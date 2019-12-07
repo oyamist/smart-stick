@@ -7,6 +7,7 @@
         constructor(opts={}) {
             logger.logInstance(this, opts);
             this.sampleRate = opts.sampleRate || 3;
+            this.smoothing = opts.smoothing || 1;
         }
 
         xIntercept3(pts) {
@@ -35,6 +36,11 @@
             return ((x1 <= xa && xa <= x3) ? xa : xb);
         }
 
+        smooth(waveform, s=this.smoothing) {
+            var a = waveform[0];
+            return waveform.map(v=> (a = s*v + (1-s)*a));
+        }
+
         analyze(waveform, sampleRate) {
             // zero-crossing analysis requires slightly more 
             // than a full period of sample data. A slightly quicker
@@ -43,12 +49,13 @@
             var zeroes = [];
             var sampleInterval = 1/sampleRate;
             var phaseDelay = undefined;
-            for (var i=2; i<waveform.length; i++) {
-                var [wi1, wi] = waveform.slice(i-1,i+1);
+            var smoothed = this.smooth(waveform);
+            for (var i=2; i<smoothed.length; i++) {
+                var [wi1, wi] = smoothed.slice(i-1,i+1);
                 if (wi1<=0 && wi>0 || wi1>0 && wi<=0) {
                     var pts = [i-2,i-1,i].map(i => ({
                         x: i*sampleInterval,
-                        y: waveform[i],
+                        y: smoothed[i],
                     }));
                     var t = this.xIntercept3(pts);
                     if (wi1 <= 0 && phaseDelay === undefined) {
@@ -57,13 +64,12 @@
                     zeroes.push({ i, t, });
                 }
             }
-            zeroes.forEach(z => console.log(js.s(z)));
-            console.log(zeroes.length);
+            //zeroes.forEach(z => console.log(js.s(z)));
             var period = 2*(zeroes[1].t - zeroes[0].t);
             if (phaseDelay > period) { 
                 phaseDelay -= period; 
             }
-            var sampleTime = waveform.length / sampleRate;
+            var sampleTime = smoothed.length / sampleRate;
             return {
                 period, 
                 phaseDelay,
