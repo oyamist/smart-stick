@@ -6,8 +6,13 @@
     class Tracker {
         constructor(opts={}) {
             logger.logInstance(this, opts);
-            this.sampleRate = opts.sampleRate || 3;
-            this.smoothing = opts.smoothing || 1;
+            this.maxPeriod = opts.maxPeriod || 3.5;
+            this.minPeriod = opts.minPeriod || 0.5;
+            this.sampleRate = opts.sampleRate || 1/0.32;
+            this.smoothing = opts.smoothing || 0.66;
+            this.smoothingDelay = opts.smoothingDelay == null
+                ? (this.smoothing === 0 ? 0 : 2/this.sampleRate)
+                : opts.smoothingDelay;
         }
 
         xIntercept3(pts) {
@@ -26,22 +31,29 @@
 
             // Assume evenly spaced points so (x1-x2) = (x3-x2)
             var a = y1 - 2*y2 + y3;    
-            var b = -y1*x2-y1*x3 +2*y2*x1+2*y2*x3 -y3*x1-y3*x2;
-            var c = y1*x2*x3 -2*y2*x1*x3 +y3*x1*x2;
-            var rootbac = Math.sqrt(b*b - 4*a*c);
-            var xa = (-b-rootbac) / (2*a);
-            var xb = (-b+rootbac) / (2*a);
+            if (a === 0) { // linear
+                var m = (y1-y2)/(x1-x2);
+                var b = y1-m*x1;
+                return -b / m;
+            } else {
+                var b = -y1*x2-y1*x3 +2*y2*x1+2*y2*x3 -y3*x1-y3*x2;
+                var c = y1*x2*x3 -2*y2*x1*x3 +y3*x1*x2;
+                this.abc = {a,b,c};
+                var rootbac = Math.sqrt(b*b - 4*a*c);
+                var xa = (-b-rootbac) / (2*a);
+                var xb = (-b+rootbac) / (2*a);
 
-            // return solution within interval
-            return ((x1 <= xa && xa <= x3) ? xa : xb);
+                // return solution within interval
+                return ((x1 <= xa && xa <= x3) ? xa : xb);
+            }
         }
 
         smooth(waveform, s=this.smoothing) {
             var a = waveform[0];
-            return waveform.map(v=> (a = s*v + (1-s)*a));
+            return waveform.map(v=> (a = (1-s)*v + s*a));
         }
 
-        analyze(waveform, sampleRate) {
+        analyze(waveform, sampleRate=this.sampleRate) {
             // zero-crossing analysis requires slightly more 
             // than a full period of sample data. A slightly quicker
             // response could be squeezed out by analyzing maxima
@@ -65,9 +77,23 @@
                 }
             }
             //zeroes.forEach(z => console.log(js.s(z)));
-            var period = 2*(zeroes[1].t - zeroes[0].t);
-            if (phaseDelay > period) { 
-                phaseDelay -= period; 
+            if (zeroes.length < 2) {
+                period = this.minPeriod;
+                phaseDelay = 0;
+            } else {
+                var period = 2*(zeroes[1].t - zeroes[0].t);
+                if (period < this.minPeriod ) {
+                    period = this.minPeriod;
+                    phaseDelay = 0;
+                } else if (this.maxPeriod < period) {
+                    period = this.minPeriod;
+                    phaseDelay = 0;
+                } else {
+                    if (phaseDelay > period) { 
+                        phaseDelay -= period; 
+                    }
+                    phaseDelay -= this.smoothingDelay;
+                }
             }
             var sampleTime = smoothed.length / sampleRate;
             return {

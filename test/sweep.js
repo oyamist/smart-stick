@@ -185,7 +185,7 @@
         should(tipxyz[1]).approximately(-0.5, eps);
         should(tipxyz[2]).approximately(0.866025, eps);
     });
-    it("TESTTESTmax acceleration varies", ()=>{
+    it("TESTTESTmax acceleration varies with period", ()=>{
         var sweep = new Sweep({ logLevel });
 
         // period
@@ -204,21 +204,38 @@
         sweep.period = 1.4;
         var a = sweep.acceleration(sweep.period*0.25);
         should(a.aTip[0]).approximately(7.909764, eps);
+    });
+    it("TESTTESTmax acceleration varies with stick length", ()=>{
+        var sweep = new Sweep({ logLevel });
 
         // rStick
+        sweep.rStick = 1;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(7.90976, eps);
         sweep.rStick = 1.1;
         var a = sweep.acceleration(sweep.period*0.25);
         should(a.aTip[0]).approximately(8.70074, eps);
+    });
+    it("TESTTESTmax acceleration varies with sweep degrees", ()=>{
+        var period = 3;
+        var sweep = new Sweep({ logLevel, period });
 
         // sweepDegrees
+        sweep.sweepDegrees = 45;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(1.72257, eps);
+        sweep.sweepDegrees = 40;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(1.53117, eps);
+        sweep.sweepDegrees = 35;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(1.33978, eps);
         sweep.sweepDegrees = 30;
         var a = sweep.acceleration(sweep.period*0.25);
-        should(a.aTip[0]).approximately(5.80049, eps);
-
-        // phaseDelay
-        sweep.phaseDelay = -sweep.period*0.25;
-        var a = sweep.acceleration(0);
-        should(a.aTip[0]).approximately(5.80049, eps);
+        should(a.aTip[0]).approximately(1.14838, eps);
+        sweep.sweepDegrees = 25;
+        var a = sweep.acceleration(sweep.period*0.25);
+        should(a.aTip[0]).approximately(0.95698, eps);
     });
 
 });
