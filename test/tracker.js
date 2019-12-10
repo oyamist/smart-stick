@@ -93,40 +93,58 @@
     })
     it("TESTTESTanalyze(...) => phaseDelay, period", ()=>{
         var tracker = new Tracker();
-        var period = 3; // the longest trackable period
+        var period = 3.2;
+        var sweepDegrees = 45;
         var sampleInterval = .032;
-        var size = Math.ceil(period/sampleInterval)+10;
-        var phaseDelay = period - 0.1;
-        var sweep = new Sweep({ logLevel, period, phaseDelay, });
-        console.log(`dbg analyze`,js.s({sweep}));
+        var size = 2*Math.ceil(period/sampleInterval);
+        var phaseDelay = 2.4;
+        var sweep = new Sweep({ 
+            logLevel, 
+            period, 
+            phaseDelay, 
+            sweepDegrees,
+        });
+        //console.log(`dbg analyze`,js.s({sweep}));
+        var heading;
         var sample = (sampleRate) => {
             var signal = new Float32Array(size);
             for (var i = 0; i < size; i++) {
-                signal[i] = sweep.acceleration(i/sampleRate).aTip[0];
+                var t = i/sampleRate;
+                signal[i] = sweep.acceleration(t).aTip[0];
+                heading = sweep.position(t).heading;
             }
             return signal;
         };
         var sampleRate = 1/sampleInterval;
-        var t = sampleInterval*Math.random();
         var smoothing = 0;
         var tracker = new Tracker({logLevel, sampleRate, smoothing});
         var signal = sample(sampleRate);
+        //console.log(signal.slice(size-20));
         var res = tracker.analyze(signal, sampleRate);
-        console.log(`dbg res phaseDelay,period`, res);
+        var iSample = (period/sampleInterval)*(heading / 360)
+        //console.log(`dbg res `, {res, heading, iSample});
+        //console.log(`dbg samples per period`, period/sampleInterval);
         should(res.period).approximately(period,eps);
         should(res.phaseDelay).approximately(phaseDelay,0.05);
         should(res.sampleInterval).approximately(sampleInterval,eps);
         should(res.sampleTime)
             .approximately(signal.length*sampleInterval,eps);
+        var unitHeading = {
+            0: 0,
+            0.8: -1,
+            1.6: 0,
+            2.4: 1,
+        }[phaseDelay];
+        should(res.unitHeading).approximately(unitHeading,0.0001);
     })
-    it("TESTTESTanalyze(...) => handles gaussian noise", ()=>{
+    it("analyze(...) => handles gaussian noise", ()=>{
         var tracker = new Tracker();
         var period = 3; // the longest trackable period
         var sampleInterval = .032;
         var size = Math.ceil(period/sampleInterval)+15;
         var phaseDelay = 0.6 * period;
         var sweep = new Sweep({ logLevel, period, phaseDelay, });
-        console.log(`dbg analyze`,js.s({sweep}));
+        //console.log(`dbg analyze`,js.s({sweep}));
         var noisePeak = 0.6;
         var sample = (sampleRate) => {
             var signal = new Float32Array(size);
@@ -155,13 +173,13 @@
         }
         ePeriod /= nTrials;
         ePhaseDelay /= nTrials;
-        console.log(js.s({ePeriod, ePhaseDelay}));
+        //console.log(js.s({ePeriod, ePhaseDelay}));
         var eps = 0.1;
         should(ePeriod).below(0.1);
         should(ePhaseDelay).below(0.01);
-        console.log(`dbg res`, res);
+        //console.log(`dbg res`, res);
     })
-    it("TESTTESTanalyze(...) => handles digitized waveform", ()=>{
+    it("analyze(...) => handles digitized waveform", ()=>{
         var tracker = new Tracker();
         var period = 3; // the longest trackable period
         var sampleInterval = .032;
@@ -193,18 +211,18 @@
             var res = tracker.analyze(signal);
             ePeriod += Math.pow(period - res.period, 2);
             if (ePeriod === Infinity) {
-                console.log(`dbg res`, res);
+                //console.log(`dbg res`, res);
                 break;
             }
             ePhaseDelay += Math.pow(phaseDelay - res.phaseDelay, 2);
         }
         ePeriod /= nTrials;
         ePhaseDelay /= nTrials;
-        console.log(`dbg res`, res);
+        //console.log(`dbg res`, res);
         should(ePeriod).below(0.05);
         should(ePhaseDelay).below(0.02);
     })
-    it("TESTTESTanalyze(...) => handles long periods", ()=>{
+    it("analyze(...) => handles long periods", ()=>{
         var tracker = new Tracker();
         var period = 6; 
         var sampleInterval = .032;

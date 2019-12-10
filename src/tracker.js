@@ -2,6 +2,7 @@
     const { js, logger, } = require('just-simple').JustSimple;
     const fourier = require('fourier-transform');
     const decibels = require('decibels');
+    const Sweep = require('./sweep');
 
     class Tracker {
         constructor(opts={}) {
@@ -13,6 +14,8 @@
             this.smoothingDelay = opts.smoothingDelay == null
                 ? (this.smoothing === 0 ? 0 : 2/this.sampleRate)
                 : opts.smoothingDelay;
+            this.sweep = opts.sweep || new Sweep(Object.assign({
+            }, opts));
         }
 
         xIntercept3(pts) {
@@ -54,6 +57,12 @@
         }
 
         analyze(waveform, sampleRate=this.sampleRate) {
+            var {
+                sweep,
+                minPeriod,
+                maxPeriod,
+                smoothingDelay,
+            } = this;
             // zero-crossing analysis requires slightly more 
             // than a full period of sample data. A slightly quicker
             // response could be squeezed out by analyzing maxima
@@ -78,25 +87,34 @@
             }
             //zeroes.forEach(z => console.log(js.s(z)));
             if (zeroes.length < 2) {
-                period = this.minPeriod;
+                period = minPeriod;
                 phaseDelay = 0;
             } else {
                 var period = 2*(zeroes[1].t - zeroes[0].t);
-                if (period < this.minPeriod ) {
-                    period = this.minPeriod;
+                if (period < minPeriod ) {
+                    period = minPeriod;
                     phaseDelay = 0;
-                } else if (this.maxPeriod < period) {
-                    period = this.minPeriod;
+                } else if (maxPeriod < period) {
+                    period = minPeriod;
                     phaseDelay = 0;
                 } else {
                     if (phaseDelay > period) { 
                         phaseDelay -= period; 
                     }
-                    phaseDelay -= this.smoothingDelay;
+                    phaseDelay -= smoothingDelay;
                 }
             }
             var sampleTime = smoothed.length / sampleRate;
+            sweep.period = period;
+            sweep.phaseDelay = phaseDelay;
+            var {
+                heading,
+                unitHeading,
+            } = sweep.position(sampleTime);
+
             return {
+                heading,
+                unitHeading,
                 period, 
                 phaseDelay,
                 sampleTime,

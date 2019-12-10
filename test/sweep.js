@@ -11,11 +11,13 @@
     it("TESTTESTdefault ctor", ()=>{
         var sweep = new Sweep();
         var period = 1.4;
+        var heading = 0;
         should(sweep.frequency).equal(1/1.4);
         should(sweep.period).equal(1.4);
         should(sweep).properties({
             rStick: 1, // stick length in meters
             sweepRadians: Math.PI * 45 / 180, // forward sweep angle
+            heading,
             sweepDegrees: 45,
             downDegrees: 0,
             downRadians: 0,
@@ -26,11 +28,13 @@
     it("TESTTESTcustom ctor", ()=>{
         var period = 1.5;
         var rStick = 1.2;
+        var heading = 12.34;
         var sweepDegrees = 32;
         var downDegrees = 61;
         var phaseDelay = 0.3;
         var sweep = new Sweep({
             logLevel,
+            heading,
             period,
             rStick,
             sweepDegrees,
@@ -41,6 +45,7 @@
         should(sweep.period).equal(period);
         should(sweep).properties({
             logLevel,
+            heading,
             rStick, // stick length in meters
             sweepDegrees,
             sweepRadians: Math.PI * sweepDegrees / 180,
@@ -58,7 +63,8 @@
 
         var t = 0; // forward
         var pos = sweep.position(t);
-        should(pos.tipBearing).approximately(0,eps);
+        should(pos.heading).approximately(0,eps);
+        should(pos.unitHeading).approximately(0,eps);
         should(pos.x).approximately(0,eps);
         should(pos.y).approximately(rStick,eps);
         should(pos.t).approximately(t,eps);
@@ -66,7 +72,8 @@
 
         var t = 0.25; // left 45 degrees
         var pos = sweep.position(t);
-        should(pos.tipBearing).approximately(sweepDegrees/2,eps);
+        should(pos.heading).approximately(sweepDegrees/2,eps);
+        should(pos.unitHeading).approximately(1,eps);
         should(pos.x).approximately(-rStick*Math.sin(halfSweep), eps);
         should(pos.y).approximately(rStick*Math.cos(halfSweep),eps);
         should(pos.t).approximately(t,eps);
@@ -74,7 +81,8 @@
 
         var t = 0.5; // forward
         var pos = sweep.position(t);
-        should(pos.tipBearing).approximately(0,eps);
+        should(pos.heading).approximately(0,eps);
+        should(pos.unitHeading).approximately(0,eps);
         should(pos.x).approximately(0,eps);
         should(pos.y).approximately(rStick,eps);
         should(pos.t).approximately(t,eps);
@@ -82,11 +90,40 @@
 
         var t = 0.75; // right 45 degrees
         var pos = sweep.position(t);
-        should(pos.tipBearing).approximately(-sweepDegrees/2,eps);
+        should(pos.heading).approximately(-sweepDegrees/2,eps);
+        should(pos.unitHeading).approximately(-1,eps);
         should(pos.x).approximately(rStick*Math.sin(halfSweep), eps);
         should(pos.y).approximately(rStick*Math.cos(halfSweep),eps);
         should(pos.t).approximately(t,eps);
         should(pos.w).approximately(-Math.PI*sweepDegrees/360,eps);
+
+        var t = 1; // forward
+        var pos = sweep.position(t);
+        should(pos.heading).approximately(0,eps);
+        should(pos.unitHeading).approximately(0,eps);
+        should(pos.x).approximately(0,eps);
+        should(pos.y).approximately(rStick,eps);
+        should(pos.t).approximately(t,eps);
+        should(pos.w).approximately(0,eps);
+
+        // with phaseDelay
+        var t = 0; // right 45 degrees
+        sweep.phaseDelay = 0.25;
+        var pos = sweep.position(t);
+        should(pos.heading).approximately(-sweepDegrees/2,eps);
+        should(pos.unitHeading).approximately(-1,eps);
+        should(pos.x).approximately(rStick*Math.sin(halfSweep), eps);
+        should(pos.y).approximately(rStick*Math.cos(halfSweep),eps);
+        should(pos.t).approximately(t,eps);
+        should(pos.w).approximately(-Math.PI*sweepDegrees/360,eps);
+        sweep.phaseDelay = -0.25;
+        var pos = sweep.position(t);
+        should(pos.heading).approximately(sweepDegrees/2,eps);
+        should(pos.unitHeading).approximately(1,eps);
+        should(pos.x).approximately(-rStick*Math.sin(halfSweep), eps);
+        should(pos.y).approximately(rStick*Math.cos(halfSweep),eps);
+        should(pos.t).approximately(t,eps);
+        should(pos.w).approximately(Math.PI*sweepDegrees/360,eps);
 
     });
     it("TESTTESTacceleration(t) => tip-relative acceleration ", ()=>{
@@ -97,7 +134,7 @@
 
         var t = 0; // forward
         var a = sweep.acceleration(t);
-        should(a.tipBearing).approximately(0,eps);
+        should(a.heading).approximately(0,eps);
         should(a.ddx).approximately(0, eps);
         should(a.ddy).approximately(-6.088067,eps);
         should(a.t).approximately(t,eps); // forward
@@ -107,7 +144,7 @@
 
         var t = 0.25; // right
         var a = sweep.acceleration(t);
-        should(a.tipBearing).approximately(22.5,eps);
+        should(a.heading).approximately(22.5,eps);
         should(a.ddx).approximately(14.32303, eps);
         should(a.ddy).approximately(5.932793,eps);
         should(a.t).approximately(t,eps);
@@ -117,7 +154,7 @@
 
         var t = 0.5; // forward
         var a = sweep.acceleration(t);
-        should(a.tipBearing).approximately(0,eps);
+        should(a.heading).approximately(0,eps);
         should(a.ddx).approximately(0, eps);
         should(a.ddy).approximately(-6.088067,eps);
         should(a.t).approximately(t,eps); // forward
@@ -127,7 +164,7 @@
 
         var t = 0.75; // left
         var a = sweep.acceleration(t);
-        should(a.tipBearing).approximately(-22.5,eps);
+        should(a.heading).approximately(-22.5,eps);
         should(a.ddx).approximately(-14.32303, eps);
         should(a.ddy).approximately(5.932793,eps);
         should(a.t).approximately(t,eps);

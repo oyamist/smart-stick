@@ -13,6 +13,7 @@
                 set(value=1/this.period) { this.period = 1/value; },
             });
             this.frequency = opts.frequency;
+            this.heading = opts.heading || 0;
             this.rStick = opts.rStick || 1; // meter
             this.downDegrees = opts.downDegrees || 0;
             Object.defineProperty(this, "sweepRadians", {
@@ -47,13 +48,15 @@
                 phaseDelay,
             } = this;
             var omega = radiansPerSecond * (t-phaseDelay);
-            var w = 0.5 * sweepRadians * Math.sin(omega);
+            var unitHeading = Math.sin(omega);
+            var w = 0.5 * sweepRadians * unitHeading;
             return {
                 t,
                 x: -rStick * Math.sin(w), // walker relative
                 y: rStick * Math.cos(w), // walker relative
                 w,
-                tipBearing: 180 * w / Math.PI,
+                heading: 180 * w / Math.PI,
+                unitHeading,
             }
         }
 
