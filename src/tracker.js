@@ -18,6 +18,8 @@
             }, opts));
         }
 
+        get sampleInterval() { return 1/this.sampleRate; }
+
         xIntercept3(pts) {
             if (pts.length !== 3) {
                 throw new Error(`Expected three points {x,y}`);
@@ -56,19 +58,20 @@
             return waveform.map(v=> (a = (1-s)*v + s*a));
         }
 
-        analyze(waveform, sampleRate=this.sampleRate) {
+        analyze(waveform) {
             var {
                 sweep,
                 minPeriod,
                 maxPeriod,
                 smoothingDelay,
+                sampleInterval,
+                sampleRate,
             } = this;
             // zero-crossing analysis requires slightly more 
             // than a full period of sample data. A slightly quicker
             // response could be squeezed out by analyzing maxima
             // and minima but that's a lot of work.
             var zeroes = [];
-            var sampleInterval = 1/sampleRate;
             var phaseDelay = undefined;
             var smoothed = this.smooth(waveform);
             for (var i=2; i<smoothed.length; i++) {

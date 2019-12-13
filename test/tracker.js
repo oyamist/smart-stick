@@ -120,7 +120,7 @@
         var tracker = new Tracker({logLevel, sampleRate, smoothing});
         var signal = sample(sampleRate);
         //console.log(signal.slice(size-20));
-        var res = tracker.analyze(signal, sampleRate);
+        var res = tracker.analyze(signal);
         var iSample = (period/sampleInterval)*(heading / 360)
         //console.log(`dbg res `, {res, heading, iSample});
         //console.log(`dbg samples per period`, period/sampleInterval);
