@@ -37,12 +37,15 @@
             v > a.max && (a.max = v);
             return a;
         }, {min:waveform[0], max:waveform[0]});
-        var scale = digMax/ Math.max(Math.abs(max), Math.abs(min));
+        var range = max - min;
+        var scale = 2*digMax/ range;
+        scale = 1;
 
-        return waveform.map(v => Math.round(v*scale));
+        var signal =  waveform.map(v => v*scale);
+        return signal;
     }
 
-    it("TESTTESTdefault ctor", ()=>{
+    it("default ctor", ()=>{
         var tracker = new Tracker();
         var sampleRate = 1/0.32;
         var smoothing = 0.66; 
@@ -55,7 +58,7 @@
         });
 
     });
-    it("TESTTESTcustom ctor", ()=>{
+    it("custom ctor", ()=>{
         var logLevel = 'info';
         var sampleRate = 1/0.16;
         var smoothingDelay = 1;
@@ -70,7 +73,7 @@
             smoothingDelay,
         });
     });
-    it("TESTTESTxIntercept3(pts) => x-intercept of parabola", ()=>{
+    it("xIntercept3(pts) => x-intercept of parabola", ()=>{
         var tracker = new Tracker();
         var a = -1;
         var b = 2;
@@ -91,7 +94,7 @@
         var x = tracker.xIntercept3(pts);
         should(x).equal(0.03952941176470588); // linear
     })
-    it("TESTTESTanalyze(...) => phaseDelay, period", ()=>{
+    it("analyze(...) => phaseDelay, period", ()=>{
         var tracker = new Tracker();
         var period = 3.2;
         var sweepDegrees = 45;
@@ -251,5 +254,68 @@
         var res = tracker.analyze(signal);
         should(res.period).equal(tracker.minPeriod);
         should(res.phaseDelay).equal(0);
+    })
+    it("TESTTESTquarter long then short signal", ()=>{
+        var sampleInterval = .032;
+        var sampleRate = 1/sampleInterval;
+        var longPeriod = 2;
+        var shortPeriod = 0.5;
+        var nPeriods = 10;
+        var tTotal = nPeriods*(longPeriod+shortPeriod);
+        var size = Math.ceil(tTotal/sampleInterval);
+
+        var rawSignal = new Float32Array(size);
+        var signalMax = 0;
+        var signalMin = 0;
+        var sizeLong = Math.round(longPeriod*nPeriods*sampleRate);
+        var longSweep = new Sweep({ logLevel, period:longPeriod, });
+        var kLong = 2;
+        for (var i = 0; i < sizeLong; i++) {
+            rawSignal[i] = kLong*longSweep.acceleration(i/sampleRate).aTip[0];
+        }
+        var shortSweep = new Sweep({ logLevel, period:shortPeriod, });
+        var kShort = 1;
+        for (var i = sizeLong; i < size; i++) {
+            rawSignal[i] = kShort*shortSweep.acceleration(i/sampleRate).aTip[0];
+        }
+
+        var signal = digitize(rawSignal, 100);
+        var noisePeak = 10;
+        for (var i = 0; i < size; i++) {
+            signal[i] += Math.round(randGauss(-noisePeak, noisePeak));
+            signal[i] += (i < sizeLong ? -50 : 50);
+        }
+
+        var windowPeriod = 1;
+        var windowSize = Math.ceil(0.5*windowPeriod*sampleRate)*2;
+        var window = new Array(windowSize).fill(signal[0]);
+        var endFrac = 0.125;
+        var a = signal.reduce((a,y,iSig) => {
+            var rank = window.reduce((a,yi) => yi<=y?a+1:a, 0)/window.length;
+            window.shift();
+            window.push(y);
+            if (rank <= endFrac) {
+                a.low++;
+            } else if (rank <= 1/2) {
+                a.lowMed++;
+            } else if (rank <= (1-endFrac)) {
+                a.highMed++;
+            } else {
+                a.high++;
+            }
+            //(iSig === sizeLong) && console.log('dbg ---');
+            //(0===iSig%10) && console.log(`dbg window`, js.s(a),y,rank);
+            return a;
+        },{
+            lowMed:0,
+            highMed:0,
+            high:0,
+            low:0,
+        });
+        var tolerance = signal.length*.04; 
+        should(a.low).approximately(signal.length/4, tolerance);
+        should(a.high).approximately(signal.length/4, tolerance);
+        should(a.lowMed).approximately(signal.length/4, tolerance);
+        should(a.highMed).approximately(signal.length/4, tolerance);
     })
 });
